@@ -1,0 +1,41 @@
+{
+  "name": "shop-streamer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^17.2.4",
+    "next": "14.2.20",
+    "next-auth": "^4.24.13",
+    "prisma": "^5.22.0",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.20",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}

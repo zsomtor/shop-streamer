@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Auth models (NextAuth / Auth.js compatible)
+// ============================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// Core models
+// ============================================================
+
+enum UserRole {
+  BUYER
+  CREATOR
+  ADMIN
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  role             UserRole  @default(BUYER)
+  barionWalletId   String?
+  walletBalanceHUF Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  creatorProfile     CreatorProfile?
+  purchases          Purchase[]
+  liveOrders         LiveOrder[]
+  walletTransactions WalletTransaction[]
+}
+
+model CreatorProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  displayName      String
+  slug             String   @unique
+  bio              String?  @db.Text
+  profileImage     String?
+  coverImage       String?
+  commissionRate   Decimal  @default(0.85) @db.Decimal(3, 2)
+  totalEarnings    Int      @default(0)
+  availableBalance Int      @default(0)
+  isVerified       Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contents   Content[]
+  liveEvents LiveEvent[]
+}
+
+enum ContentType {
+  VIDEO
+  PODCAST
+  LIVE_REPLAY
+  EXCLUSIVE
+}
+
+model Content {
+  id            String      @id @default(cuid())
+  creatorId     String
+  title         String
+  description   String?     @db.Text
+  slug          String      @unique
+  type          ContentType @default(VIDEO)
+  priceHUF      Int
+  thumbnailUrl  String?
+  videoUrl      String?
+  duration      Int?
+  isPublished   Boolean     @default(false)
+  isFree        Boolean     @default(false)
+  purchaseCount Int         @default(0)
+  viewCount     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  publishedAt   DateTime?
+  updatedAt     DateTime    @updatedAt
+
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  BARION_WALLET
+  BARION_CARD
+  SIMPLEPAY
+  PLATFORM_WALLET
+}
+
+model Purchase {
+  id                  String         @id @default(cuid())
+  userId              String
+  contentId           String
+  amountHUF           Int
+  platformFeeHUF      Int
+  creatorEarningHUF   Int
+  paymentMethod       PaymentMethod  @default(PLATFORM_WALLET)
+  barionTransactionId String?
+  status              PurchaseStatus @default(PENDING)
+  createdAt           DateTime       @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId])
+}
+
+// ============================================================
+// Live shopping models
+// ============================================================
+
+enum LiveEventStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum LiveEventType {
+  SHOPPING
+  EXCLUSIVE_CONTENT
+  QA
+  OTHER
+}
+
+model LiveEvent {
+  id              String          @id @default(cuid())
+  creatorId       String
+  title           String
+  description     String?         @db.Text
+  thumbnailUrl    String?
+  scheduledAt     DateTime
+  startedAt       DateTime?
+  endedAt         DateTime?
+  status          LiveEventStatus @default(SCHEDULED)
+  streamUrl       String?
+  playbackUrl     String?
+  viewerCount     Int             @default(0)
+  peakViewerCount Int             @default(0)
+  type            LiveEventType   @default(SHOPPING)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creator  CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  products LiveProduct[]
+  orders   LiveOrder[]
+}
+
+model LiveProduct {
+  id               String   @id @default(cuid())
+  liveEventId      String
+  name             String
+  description      String?  @db.Text
+  imageUrl         String?
+  originalPriceHUF Int
+  livePriceHUF     Int
+  stockQuantity    Int      @default(0)
+  soldQuantity     Int      @default(0)
+  isActive         Boolean  @default(false)
+  displayOrder     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  liveEvent LiveEvent   @relation(fields: [liveEventId], references: [id], onDelete: Cascade)
+  orders    LiveOrder[]
+}
+
+enum LiveOrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model LiveOrder {
+  id                  String          @id @default(cuid())
+  userId              String
+  liveEventId         String
+  liveProductId       String
+  quantity            Int             @default(1)
+  totalHUF            Int
+  platformFeeHUF      Int
+  status              LiveOrderStatus @default(PENDING)
+  shippingAddress     Json?
+  barionTransactionId String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liveEvent   LiveEvent   @relation(fields: [liveEventId], references: [id], onDelete: Cascade)
+  liveProduct LiveProduct @relation(fields: [liveProductId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Wallet / transaction models
+// ============================================================
+
+enum WalletTransactionType {
+  TOP_UP
+  PURCHASE
+  REFUND
+  CREATOR_PAYOUT
+}
+
+model WalletTransaction {
+  id                 String                @id @default(cuid())
+  userId             String
+  type               WalletTransactionType
+  amountHUF          Int
+  balanceBefore      Int
+  balanceAfter       Int
+  relatedPurchaseId  String?
+  relatedLiveOrderId String?
+  createdAt          DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
