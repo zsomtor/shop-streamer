@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthSessionProvider from "@/components/providers/session-provider";
+import Navbar from "@/components/layout/navbar";
+import Footer from "@/components/layout/footer";
 
 export const metadata: Metadata = {
   title: "ShopStream — Tartalom & Élő Vásárlás",
@@ -16,7 +18,13 @@ export default function RootLayout({
   return (
     <html lang="hu" className="dark">
       <body className="font-sans">
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <AuthSessionProvider>
+          <div className="flex min-h-screen flex-col">
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </AuthSessionProvider>
       </body>
     </html>
   );
