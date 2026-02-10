@@ -7,18 +7,22 @@ import { prisma } from "@/lib/db";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-    }),
-    // Dev-only credentials provider for testing without OAuth
+    // Google OAuth (requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    ...(process.env.GOOGLE_CLIENT_ID
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+          }),
+        ]
+      : []),
+    // Email credentials provider — for MVP testing
     CredentialsProvider({
-      name: "Dev Login",
+      name: "Email",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "teszt@example.com" },
+        email: { label: "Email cím", type: "email", placeholder: "teszt@example.com" },
       },
       async authorize(credentials) {
-        if (process.env.NODE_ENV === "production") return null;
         if (!credentials?.email) return null;
 
         const user = await prisma.user.findUnique({
@@ -29,7 +33,7 @@ export const authOptions: NextAuthOptions = {
           return { id: user.id, name: user.name, email: user.email, image: user.image };
         }
 
-        // Auto-create user in dev mode
+        // Auto-create user if not found
         const newUser = await prisma.user.create({
           data: { email: credentials.email, name: credentials.email.split("@")[0] },
         });
