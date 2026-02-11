@@ -56,6 +56,14 @@ export default async function ContentDetailPage({
 
   const canAccess = content.isFree || isPurchased;
 
+  // Extract YouTube video ID for embedding
+  function getYouTubeId(url: string): string | null {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/);
+    return match ? match[1] : null;
+  }
+
+  const youtubeId = content.videoUrl ? getYouTubeId(content.videoUrl) : null;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-8 lg:flex-row">
@@ -64,33 +72,54 @@ export default async function ContentDetailPage({
           {/* Preview / Player */}
           <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-dark-700 bg-dark-800">
             {canAccess && content.videoUrl ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <a
-                  href={content.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-3 text-brand-400 hover:text-brand-300 transition-colors"
-                >
-                  <svg
-                    className="h-16 w-16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              youtubeId ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${youtubeId}`}
+                  className="absolute inset-0 h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={content.title}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <a
+                    href={content.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-3 text-brand-400 hover:text-brand-300 transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
-                    />
-                  </svg>
-                  <p className="text-sm font-medium">Videó megtekintése</p>
-                </a>
-              </div>
+                    <svg
+                      className="h-16 w-16"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
+                      />
+                    </svg>
+                    <p className="text-sm font-medium">Videó megtekintése</p>
+                  </a>
+                </div>
+              )
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                {content.thumbnailUrl && !canAccess && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={content.thumbnailUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover opacity-30 blur-sm"
+                    />
+                    <div className="absolute inset-0 bg-dark-900/60" />
+                  </>
+                )}
                 <svg
-                  className="h-16 w-16 text-dark-500"
+                  className="relative h-16 w-16 text-dark-500"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -102,7 +131,7 @@ export default async function ContentDetailPage({
                     d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
                   />
                 </svg>
-                <p className="text-sm text-dark-400">
+                <p className="relative text-sm text-dark-400">
                   {content.isFree ? "Tartalom előnézet" : "Vásárold meg a megtekintéshez"}
                 </p>
               </div>
