@@ -222,3 +222,73 @@ export async function toggleContentPublished(contentId: string): Promise<{ error
   revalidatePath("/explore");
   return { success: true };
 }
+
+// ============================================================
+// Become a creator
+// ============================================================
+
+export async function becomeCreator(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { error: "Nem vagy bejelentkezve." };
+
+  // Check if already a creator
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) return { error: "Felhasználó nem található." };
+  if (user.role === "CREATOR" || user.role === "ADMIN") {
+    return { error: "Már alkotó vagy." };
+  }
+
+  const existing = await prisma.creatorProfile.findUnique({
+    where: { userId: session.user.id },
+  });
+  if (existing) return { error: "Már van alkotói profilod." };
+
+  const displayName = (formData.get("displayName") as string)?.trim();
+  const bio = (formData.get("bio") as string)?.trim() || null;
+  let slug = (formData.get("slug") as string)?.trim();
+
+  if (!displayName) return { error: "A megjelenítendő név megadása kötelező." };
+
+  // Generate slug if not provided
+  if (!slug) {
+    slug = displayName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  // Validate slug format
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug)) {
+    return { error: "A slug csak kisbetűket, számokat és kötőjelet tartalmazhat." };
+  }
+
+  // Check slug uniqueness
+  const slugExists = await prisma.creatorProfile.findUnique({ where: { slug } });
+  if (slugExists) return { error: "Ez a slug már foglalt. Válassz másikat!" };
+
+  try {
+    await prisma.$transaction([
+      prisma.creatorProfile.create({
+        data: {
+          userId: session.user.id,
+          displayName,
+          slug,
+          bio,
+          isActive: true,
+        },
+      }),
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { role: "CREATOR" },
+      }),
+    ]);
+  } catch {
+    return { error: "Hiba történt a regisztráció során. Próbáld újra!" };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/creator-dashboard");
+  redirect("/creator-dashboard");
+}

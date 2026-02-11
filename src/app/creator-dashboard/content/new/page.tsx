@@ -11,7 +11,20 @@ export default function NewContentPage() {
   const [price, setPrice] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailAutoFilled, setThumbnailAutoFilled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleVideoUrlChange = (url: string) => {
+    setVideoUrl(url);
+    // Auto-populate thumbnail from YouTube URL
+    if (!thumbnailUrl || thumbnailAutoFilled) {
+      const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/);
+      if (match) {
+        setThumbnailUrl(`https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`);
+        setThumbnailAutoFilled(true);
+      }
+    }
+  };
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -148,7 +161,7 @@ export default function NewContentPage() {
             id="videoUrl"
             type="url"
             value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
+            onChange={(e) => handleVideoUrlChange(e.target.value)}
             placeholder="https://..."
             className="input"
           />
@@ -168,7 +181,7 @@ export default function NewContentPage() {
             id="thumbnailUrl"
             type="url"
             value={thumbnailUrl}
-            onChange={(e) => setThumbnailUrl(e.target.value)}
+            onChange={(e) => { setThumbnailUrl(e.target.value); setThumbnailAutoFilled(false); }}
             placeholder="https://..."
             className="input"
           />

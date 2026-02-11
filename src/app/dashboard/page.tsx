@@ -74,6 +74,28 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      {/* Become a Creator CTA — only for BUYER users */}
+      {session.user.role === "BUYER" && (
+        <div className="mb-8 rounded-xl border border-brand-500/20 bg-gradient-to-r from-brand-500/5 to-brand-600/5 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Legyél te is alkotó!
+              </h2>
+              <p className="mt-1 text-sm text-dark-400">
+                Hozd létre az alkotói profilodat, töltsd fel tartalmaidat és keress bevételt az eladásaid után.
+              </p>
+            </div>
+            <Link
+              href="/alkotoi-regisztracio"
+              className="btn-primary shrink-0"
+            >
+              Alkotóvá válás
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Recent purchases */}
       <div>
         <div className="mb-4 flex items-center justify-between">

@@ -212,7 +212,7 @@ export default async function HomePage() {
               </p>
               <div className="mt-8">
                 <Link
-                  href="/auth/bejelentkezes"
+                  href="/alkotoi-regisztracio"
                   className="inline-flex items-center justify-center rounded-lg bg-white px-8 py-3 text-base font-semibold text-brand-600 transition-colors hover:bg-brand-50"
                 >
                   Regisztrálj alkotóként

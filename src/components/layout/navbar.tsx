@@ -72,6 +72,14 @@ export default function Navbar() {
                         Alkotói panel
                       </Link>
                     )}
+                    {session.user.role === "BUYER" && (
+                      <Link
+                        href="/alkotoi-regisztracio"
+                        className="block px-4 py-2 text-sm text-brand-400 hover:bg-dark-700"
+                      >
+                        Alkotóvá válás
+                      </Link>
+                    )}
                     {session.user.role === "ADMIN" && (
                       <Link
                         href="/admin"
@@ -167,6 +175,15 @@ export default function Navbar() {
                     className="block rounded-lg px-3 py-2 text-dark-200 hover:bg-dark-800"
                   >
                     Alkotói panel
+                  </Link>
+                )}
+                {session.user.role === "BUYER" && (
+                  <Link
+                    href="/alkotoi-regisztracio"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-brand-400 hover:bg-dark-800"
+                  >
+                    Alkotóvá válás
                   </Link>
                 )}
                 <button
