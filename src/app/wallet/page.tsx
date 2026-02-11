@@ -1,50 +1,18 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getUserWalletBalance, getUserWalletTransactions } from "@/lib/queries";
+import { formatPrice, formatDateTime } from "@/lib/utils";
+import { TopUpForm } from "@/components/wallet/top-up-form";
 
-import { useState } from "react";
+export default async function WalletPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/auth/bejelentkezes");
 
-const topUpAmounts = [2000, 5000, 10000];
-
-const transactions = [
-  {
-    id: "1",
-    description: "Feltöltés",
-    amount: 5000,
-    type: "credit" as const,
-    date: "2025-01-15 14:32",
-  },
-  {
-    id: "2",
-    description: "Vásárlás — Haladó React tanfolyam",
-    amount: -4990,
-    type: "debit" as const,
-    date: "2025-01-15 15:10",
-  },
-  {
-    id: "3",
-    description: "Feltöltés",
-    amount: 10000,
-    type: "credit" as const,
-    date: "2025-01-12 09:20",
-  },
-  {
-    id: "4",
-    description: "Vásárlás — UI/UX Design alapok",
-    amount: -2990,
-    type: "debit" as const,
-    date: "2025-01-12 10:05",
-  },
-  {
-    id: "5",
-    description: "Feltöltés",
-    amount: 5000,
-    type: "credit" as const,
-    date: "2025-01-08 18:45",
-  },
-];
-
-export default function WalletPage() {
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const currentBalance = 12500;
+  const [balance, transactions] = await Promise.all([
+    getUserWalletBalance(session.user.id),
+    getUserWalletTransactions(session.user.id),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -60,40 +28,14 @@ export default function WalletPage() {
       <div className="mb-8 rounded-xl border border-dark-700 bg-gradient-to-br from-dark-800 to-dark-900 p-6">
         <p className="text-sm font-medium text-dark-400">Jelenlegi egyenleg</p>
         <p className="mt-1 text-4xl font-bold text-white">
-          {currentBalance.toLocaleString("hu-HU")}{" "}
+          {balance.toLocaleString("hu-HU")}{" "}
           <span className="text-xl text-dark-300">Ft</span>
         </p>
       </div>
 
       {/* Top-up section */}
       <div className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-white">
-          Egyenleg feltöltése
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          {topUpAmounts.map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setSelectedAmount(amount)}
-              className={`rounded-lg border px-4 py-4 text-center transition-colors ${
-                selectedAmount === amount
-                  ? "border-brand-500 bg-brand-500/10 text-brand-400"
-                  : "border-dark-600 bg-dark-800 text-dark-200 hover:border-dark-500 hover:bg-dark-700"
-              }`}
-            >
-              <span className="block text-xl font-bold">
-                {amount.toLocaleString("hu-HU")}
-              </span>
-              <span className="text-sm text-dark-400">Ft</span>
-            </button>
-          ))}
-        </div>
-
-        {selectedAmount && (
-          <button className="btn-primary mt-4 w-full">
-            Feltöltés: {selectedAmount.toLocaleString("hu-HU")} Ft
-          </button>
-        )}
+        <TopUpForm />
       </div>
 
       {/* Transaction history */}
@@ -101,27 +43,41 @@ export default function WalletPage() {
         <h2 className="mb-4 text-lg font-semibold text-white">
           Tranzakciós előzmények
         </h2>
-        <div className="space-y-2">
-          {transactions.map((tx) => (
-            <div
-              key={tx.id}
-              className="card flex items-center justify-between"
-            >
-              <div>
-                <p className="font-medium text-white">{tx.description}</p>
-                <p className="text-xs text-dark-500">{tx.date}</p>
-              </div>
-              <span
-                className={`text-sm font-semibold ${
-                  tx.type === "credit" ? "text-emerald-400" : "text-red-400"
-                }`}
-              >
-                {tx.type === "credit" ? "+" : ""}
-                {tx.amount.toLocaleString("hu-HU")} Ft
-              </span>
-            </div>
-          ))}
-        </div>
+
+        {transactions.length > 0 ? (
+          <div className="space-y-2">
+            {transactions.map((tx) => {
+              const isCredit = tx.amountHUF > 0;
+              const typeLabel = {
+                TOP_UP: "Feltöltés",
+                PURCHASE: "Vásárlás",
+                REFUND: "Visszatérítés",
+                CREATOR_PAYOUT: "Alkotói kifizetés",
+              }[tx.type];
+
+              return (
+                <div key={tx.id} className="card flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-white">{typeLabel}</p>
+                    <p className="text-xs text-dark-500">{formatDateTime(tx.createdAt)}</p>
+                  </div>
+                  <span
+                    className={`text-sm font-semibold ${
+                      isCredit ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {isCredit ? "+" : ""}
+                    {tx.amountHUF.toLocaleString("hu-HU")} Ft
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dark-700 bg-dark-800 p-8 text-center">
+            <p className="text-dark-400">Még nincsenek tranzakcióid.</p>
+          </div>
+        )}
       </div>
     </div>
   );

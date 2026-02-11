@@ -1,26 +1,21 @@
-export default function CreatorDashboardPage() {
-  const stats = [
-    {
-      label: "Összes bevétel",
-      value: "1 245 800 Ft",
-      change: "+12.5%",
-    },
-    {
-      label: "Elérhető egyenleg",
-      value: "384 200 Ft",
-      change: null,
-    },
-    {
-      label: "Tartalmak száma",
-      value: "47",
-      change: "+3",
-    },
-    {
-      label: "Megtekintések",
-      value: "28 430",
-      change: "+8.2%",
-    },
-  ];
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getCreatorProfile, getCreatorDashboardStats } from "@/lib/queries";
+import { formatPrice, formatDate } from "@/lib/utils";
+
+export default async function CreatorDashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/auth/bejelentkezes");
+  if (session.user.role !== "CREATOR" && session.user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  const profile = await getCreatorProfile(session.user.id);
+  if (!profile) redirect("/dashboard");
+
+  const stats = await getCreatorDashboardStats(profile.id);
 
   return (
     <div>
@@ -29,17 +24,30 @@ export default function CreatorDashboardPage() {
       </h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="card">
-            <p className="text-sm text-dark-400">{stat.label}</p>
-            <p className="mt-1 text-2xl font-bold text-dark-50">
-              {stat.value}
-            </p>
-            {stat.change && (
-              <p className="mt-1 text-sm text-brand-500">{stat.change}</p>
-            )}
-          </div>
-        ))}
+        <div className="card">
+          <p className="text-sm text-dark-400">Összes bevétel</p>
+          <p className="mt-1 text-2xl font-bold text-dark-50">
+            {formatPrice(stats.totalEarnings)}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-dark-400">Elérhető egyenleg</p>
+          <p className="mt-1 text-2xl font-bold text-brand-500">
+            {formatPrice(stats.availableBalance)}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-dark-400">Tartalmak száma</p>
+          <p className="mt-1 text-2xl font-bold text-dark-50">
+            {stats.contentCount}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-dark-400">Megtekintések</p>
+          <p className="mt-1 text-2xl font-bold text-dark-50">
+            {stats.totalViews.toLocaleString("hu-HU")}
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -47,18 +55,57 @@ export default function CreatorDashboardPage() {
           <h2 className="text-lg font-semibold text-dark-100 mb-4">
             Legutóbbi tartalmak
           </h2>
-          <p className="text-sm text-dark-400">
-            Még nincsenek tartalmaid. Kezdj el feltölteni!
-          </p>
+          {stats.recentContent.length > 0 ? (
+            <div className="space-y-3">
+              {stats.recentContent.map((content) => (
+                <div key={content.id} className="flex items-center justify-between text-sm">
+                  <div>
+                    <p className="text-dark-200 font-medium">{content.title}</p>
+                    <p className="text-xs text-dark-500">
+                      {content.publishedAt ? formatDate(content.publishedAt) : "Piszkozat"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-dark-400">{content.purchaseCount} eladás</span>
+                    <span className={`h-2 w-2 rounded-full ${content.isPublished ? "bg-emerald-400" : "bg-dark-500"}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-dark-400">
+              Még nincsenek tartalmaid.{" "}
+              <Link href="/creator-dashboard/content/new" className="text-brand-400 hover:text-brand-300">
+                Kezdj el feltölteni!
+              </Link>
+            </p>
+          )}
         </div>
 
         <div className="card">
           <h2 className="text-lg font-semibold text-dark-100 mb-4">
-            Közelgő élő események
+            Gyors műveletek
           </h2>
-          <p className="text-sm text-dark-400">
-            Nincs tervezett élő esemény.
-          </p>
+          <div className="space-y-3">
+            <Link
+              href="/creator-dashboard/content/new"
+              className="btn-primary w-full justify-center"
+            >
+              + Új tartalom feltöltése
+            </Link>
+            <Link
+              href="/creator-dashboard/content"
+              className="btn-secondary w-full justify-center"
+            >
+              Tartalmak kezelése
+            </Link>
+            <Link
+              href="/creator-dashboard/earnings"
+              className="btn-secondary w-full justify-center"
+            >
+              Bevételek megtekintése
+            </Link>
+          </div>
         </div>
       </div>
     </div>
