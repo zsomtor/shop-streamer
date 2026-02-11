@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { getPublishedContent } from "@/lib/queries";
 import { ContentCard } from "@/components/content/content-card";
@@ -21,7 +22,20 @@ export default async function ExplorePage({
     page: typeof searchParams.page === "string" ? searchParams.page : undefined,
   };
 
-  const { items, total, totalPages, page } = await getPublishedContent(params);
+  let items: Awaited<ReturnType<typeof getPublishedContent>>["items"] = [];
+  let total = 0;
+  let totalPages = 0;
+  let page = 1;
+
+  try {
+    const result = await getPublishedContent(params);
+    items = result.items;
+    total = result.total;
+    totalPages = result.totalPages;
+    page = result.page;
+  } catch {
+    // DB might not be ready
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -36,7 +50,9 @@ export default async function ExplorePage({
       <div className="mt-8 flex flex-col gap-8 lg:flex-row">
         {/* Filter sidebar */}
         <aside className="w-full shrink-0 lg:w-64">
-          <ExploreFilters />
+          <Suspense fallback={<div className="rounded-xl border border-dark-700 bg-dark-800 p-5 h-96 animate-pulse" />}>
+            <ExploreFilters />
+          </Suspense>
         </aside>
 
         {/* Content grid */}

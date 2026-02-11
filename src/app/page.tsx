@@ -7,13 +7,23 @@ import { CreatorCard } from "@/components/content/creator-card";
 import { LiveEventCard } from "@/components/content/live-event-card";
 
 export default async function HomePage() {
-  const [featuredContent, upcomingEvents, creators, stats, liveNow] = await Promise.all([
-    getFeaturedContent(6),
-    getUpcomingLiveEvents(4),
-    getActiveCreators(4),
-    getPlatformStats(),
-    getLiveNowCount(),
-  ]);
+  let featuredContent: Awaited<ReturnType<typeof getFeaturedContent>> = [];
+  let upcomingEvents: Awaited<ReturnType<typeof getUpcomingLiveEvents>> = [];
+  let creators: Awaited<ReturnType<typeof getActiveCreators>> = [];
+  let stats = { creators: 0, contents: 0, users: 0 };
+  let liveNow = 0;
+
+  try {
+    [featuredContent, upcomingEvents, creators, stats, liveNow] = await Promise.all([
+      getFeaturedContent(6),
+      getUpcomingLiveEvents(4),
+      getActiveCreators(4),
+      getPlatformStats(),
+      getLiveNowCount(),
+    ]);
+  } catch {
+    // DB might not be initialized yet — show page with empty data
+  }
 
   return (
     <div className="min-h-screen">
