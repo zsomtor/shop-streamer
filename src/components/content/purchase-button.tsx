@@ -36,7 +36,10 @@ export function PurchaseButton({
             {success ? "Sikeres vásárlás!" : "Megvásárolt tartalom"}
           </p>
         </div>
-        <button className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-center font-semibold text-white hover:bg-emerald-700 transition-colors">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-center font-semibold text-white hover:bg-emerald-700 transition-colors"
+        >
           Megtekintés
         </button>
       </div>
@@ -45,7 +48,10 @@ export function PurchaseButton({
 
   if (isFree) {
     return (
-      <button className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-center font-semibold text-white hover:bg-emerald-700 transition-colors">
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-center font-semibold text-white hover:bg-emerald-700 transition-colors"
+      >
         Ingyenes megtekintés
       </button>
     );
