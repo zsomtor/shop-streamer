@@ -8,12 +8,16 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const creator = await getCreatorBySlug(params.slug);
-  if (!creator) return { title: "Alkotó nem található — ShopStream" };
-  return {
-    title: `${creator.displayName} — ShopStream`,
-    description: creator.bio?.slice(0, 160) ?? `${creator.displayName} alkotói profilja a ShopStream-en.`,
-  };
+  try {
+    const creator = await getCreatorBySlug(params.slug);
+    if (!creator) return { title: "Alkotó nem található — ShopStream" };
+    return {
+      title: `${creator.displayName} — ShopStream`,
+      description: creator.bio?.slice(0, 160) ?? `${creator.displayName} alkotói profilja a ShopStream-en.`,
+    };
+  } catch {
+    return { title: "ShopStream" };
+  }
 }
 
 export default async function CreatorProfilePage({
@@ -21,10 +25,20 @@ export default async function CreatorProfilePage({
 }: {
   params: { slug: string };
 }) {
-  const creator = await getCreatorBySlug(params.slug);
+  let creator;
+  try {
+    creator = await getCreatorBySlug(params.slug);
+  } catch {
+    notFound();
+  }
   if (!creator) notFound();
 
-  const contents = await getCreatorContent(params.slug);
+  let contents: Awaited<ReturnType<typeof getCreatorContent>> = [];
+  try {
+    contents = await getCreatorContent(params.slug);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

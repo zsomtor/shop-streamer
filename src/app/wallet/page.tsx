@@ -9,10 +9,16 @@ export default async function WalletPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/auth/bejelentkezes");
 
-  const [balance, transactions] = await Promise.all([
-    getUserWalletBalance(session.user.id),
-    getUserWalletTransactions(session.user.id),
-  ]);
+  let balance = 0;
+  let transactions: Awaited<ReturnType<typeof getUserWalletTransactions>> = [];
+  try {
+    [balance, transactions] = await Promise.all([
+      getUserWalletBalance(session.user.id),
+      getUserWalletTransactions(session.user.id),
+    ]);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">

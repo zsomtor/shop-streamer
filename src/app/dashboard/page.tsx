@@ -9,10 +9,16 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/auth/bejelentkezes");
 
-  const [purchases, walletBalance] = await Promise.all([
-    getUserPurchases(session.user.id),
-    getUserWalletBalance(session.user.id),
-  ]);
+  let purchases: Awaited<ReturnType<typeof getUserPurchases>> = [];
+  let walletBalance = 0;
+  try {
+    [purchases, walletBalance] = await Promise.all([
+      getUserPurchases(session.user.id),
+      getUserWalletBalance(session.user.id),
+    ]);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   const recentPurchases = purchases.slice(0, 3);
 

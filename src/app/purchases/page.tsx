@@ -9,7 +9,12 @@ export default async function PurchasesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/auth/bejelentkezes");
 
-  const purchases = await getUserPurchases(session.user.id);
+  let purchases: Awaited<ReturnType<typeof getUserPurchases>> = [];
+  try {
+    purchases = await getUserPurchases(session.user.id);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">

@@ -13,10 +13,20 @@ export default async function ContentManagementPage() {
     redirect("/dashboard");
   }
 
-  const profile = await getCreatorProfile(session.user.id);
+  let profile;
+  try {
+    profile = await getCreatorProfile(session.user.id);
+  } catch {
+    // DB may not be initialized yet
+  }
   if (!profile) redirect("/dashboard");
 
-  const contents = await getCreatorContentList(profile.id);
+  let contents: Awaited<ReturnType<typeof getCreatorContentList>> = [];
+  try {
+    contents = await getCreatorContentList(profile.id);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div>

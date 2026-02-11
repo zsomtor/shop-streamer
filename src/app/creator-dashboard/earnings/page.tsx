@@ -11,10 +11,20 @@ export default async function EarningsPage() {
     redirect("/dashboard");
   }
 
-  const profile = await getCreatorProfile(session.user.id);
+  let profile;
+  try {
+    profile = await getCreatorProfile(session.user.id);
+  } catch {
+    // DB may not be initialized yet
+  }
   if (!profile) redirect("/dashboard");
 
-  const sales = await getCreatorEarnings(profile.id);
+  let sales: Awaited<ReturnType<typeof getCreatorEarnings>> = [];
+  try {
+    sales = await getCreatorEarnings(profile.id);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div>

@@ -12,10 +12,20 @@ export default async function CreatorDashboardPage() {
     redirect("/dashboard");
   }
 
-  const profile = await getCreatorProfile(session.user.id);
+  let profile;
+  try {
+    profile = await getCreatorProfile(session.user.id);
+  } catch {
+    // DB may not be initialized yet
+  }
   if (!profile) redirect("/dashboard");
 
-  const stats = await getCreatorDashboardStats(profile.id);
+  let stats = { totalEarnings: 0, availableBalance: 0, contentCount: 0, totalViews: 0, recentContent: [] as { id: string; title: string; publishedAt: Date | null; isPublished: boolean; purchaseCount: number }[] };
+  try {
+    stats = await getCreatorDashboardStats(profile.id);
+  } catch {
+    // DB may not be initialized yet
+  }
 
   return (
     <div>

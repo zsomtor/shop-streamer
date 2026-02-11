@@ -13,12 +13,16 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const content = await getContentBySlug(params.slug);
-  if (!content) return { title: "Tartalom nem található — ShopStream" };
-  return {
-    title: `${content.title} — ShopStream`,
-    description: content.description?.slice(0, 160) ?? undefined,
-  };
+  try {
+    const content = await getContentBySlug(params.slug);
+    if (!content) return { title: "Tartalom nem található — ShopStream" };
+    return {
+      title: `${content.title} — ShopStream`,
+      description: content.description?.slice(0, 160) ?? undefined,
+    };
+  } catch {
+    return { title: "ShopStream" };
+  }
 }
 
 export default async function ContentDetailPage({
@@ -26,17 +30,29 @@ export default async function ContentDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const content = await getContentBySlug(params.slug);
+  let content;
+  try {
+    content = await getContentBySlug(params.slug);
+  } catch {
+    notFound();
+  }
   if (!content) notFound();
 
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
-  const [isPurchased, userBalance, relatedContent] = await Promise.all([
-    userId ? hasUserPurchased(userId, content.id) : false,
-    userId ? getUserWalletBalance(userId) : 0,
-    getRelatedContent(content.id, content.creatorId),
-  ]);
+  let isPurchased = false;
+  let userBalance = 0;
+  let relatedContent: Awaited<ReturnType<typeof getRelatedContent>> = [];
+  try {
+    [isPurchased, userBalance, relatedContent] = await Promise.all([
+      userId ? hasUserPurchased(userId, content.id) : false,
+      userId ? getUserWalletBalance(userId) : 0,
+      getRelatedContent(content.id, content.creatorId),
+    ]);
+  } catch {
+    // DB queries may fail
+  }
 
   const canAccess = content.isFree || isPurchased;
 
